@@ -21,3 +21,12 @@ macro_rules! println {
         $crate::io::__print_impl(format_args!("{}\n", format_args!($($arg)*)));
     }
 }
+
+#[macro_export]
+macro_rules! println_prefix {
+    () => { $crate::print!("\n") };
+    ($pre: expr, $($arg:tt)*) => {
+        $crate::print!("{}", $pre);
+        $crate::io::__print_impl(format_args!("{}\n", format_args!($($arg)*)));
+    }
+}
