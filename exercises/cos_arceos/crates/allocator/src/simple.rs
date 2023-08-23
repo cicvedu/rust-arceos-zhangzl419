@@ -9,10 +9,10 @@ use crate::{AllocResult, BaseAllocator, ByteAllocator, AllocError};
 
 pub struct SimpleByteAllocator {
     data: [u8; Self::Max],
-    // point to first free mem addr
-    ptr: usize,
-    // if num_allocations 1->0, then reset ptr to 0
-    num_allocations: usize
+    // 指向当前可用内存
+    curFreeMemPtr: usize,
+    // 已分配数
+    num_allocated: usize
 }
 
 impl SimpleByteAllocator {
@@ -21,8 +21,8 @@ impl SimpleByteAllocator {
     pub const fn new() -> Self {
         Self {
             data: [0; Self::Max],
-            ptr: 0,
-            num_allocations: 0
+            curFreeMemPtr: 0,
+            num_allocated: 0
         }
     }
 }
@@ -67,36 +67,36 @@ impl BaseAllocator for SimpleByteAllocator {
 //     }
 // }
 impl ByteAllocator for SimpleByteAllocator {
-    /// See also: slice::align_to
-    /// Why return ptr is NonZeroUsize not NonNull?
     fn alloc(&mut self, layout: Layout) -> AllocResult<NonZeroUsize> {
         let size = layout.size();
         let align = 2usize.pow(layout.align() as u32);
 
-        let div = size / align;
-        let rem = size % align;
-        let size = if rem != 0 {
-            div + 1
+        let quotient = size / align;
+        let remainder = size % align;
+        let size = if remainder != 0 {
+            quotient + 1
         } else {
-            div
+            quotient
         } * align;
-
-        if self.ptr + size > Self::Max {
+        
+        //确保内存足够
+        if self.curFreeMemPtr + size > Self::Max {
             return Err(AllocError::NoMemory);
         }
 
-        let start = self.ptr;
-        self.ptr += size;
-        self.num_allocations += 1;
-        let ptr = self.data[start..self.ptr].as_mut_ptr() as usize;
+        //分配
+        let start = self.curFreeMemPtr;
+        self.curFreeMemPtr += size;
+        self.num_allocated += 1;
+        let ptr = self.data[start..self.curFreeMemPtr].as_mut_ptr() as usize;
 
         Ok(NonZeroUsize::new(ptr).unwrap())
     }
 
     fn dealloc(&mut self, _pos: NonZeroUsize, _layout: Layout) {
-        self.num_allocations -= 1;
-        if self.num_allocations == 0 {
-            self.ptr = 0;
+        self.num_allocated -= 1;
+        if self.num_allocated == 0 {
+            self.curFreeMemPtr = 0;
         }
     }
 
@@ -105,10 +105,10 @@ impl ByteAllocator for SimpleByteAllocator {
     }
 
     fn used_bytes(&self) -> usize {
-        self.ptr
+        self.curFreeMemPtr
     }
 
     fn available_bytes(&self) -> usize {
-        Self::Max - self.ptr
+        Self::Max - self.curFreeMemPtr
     }
 }
