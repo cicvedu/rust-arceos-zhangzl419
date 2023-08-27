@@ -92,7 +92,7 @@ async fn async_arceos(exercise: &Exercise) -> Result<(), ()> {
     let compilation_result = exercise.async_compile().await;
     let result = match compilation_result {
         Ok(compilation) => {
-            println!(" compilation.stdout:::::--->{}",  compilation.stdout);
+            println!(" compilation.stdout:::::--->{}", compilation.stdout);
             if compilation.stdout.contains(&exercise.result) {
                 // compilation
                 return Ok(());
@@ -103,7 +103,7 @@ async fn async_arceos(exercise: &Exercise) -> Result<(), ()> {
                 );
                 Err(())
             }
-        },
+        }
         Err(output) => {
             progress_bar.finish_and_clear();
             println!(
@@ -139,10 +139,9 @@ fn compile_and_arceos(exercise: &Exercise) -> Result<(), ()> {
     let result = compilation.stdout;
     println!("{}", result);
     progress_bar.finish_and_clear();
-    if result.contains(&exercise.result){
+    if result.contains(&exercise.result) {
         Ok(())
     } else {
         Err(())
     }
-    
 }

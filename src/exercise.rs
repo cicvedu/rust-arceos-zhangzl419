@@ -1,6 +1,6 @@
+use async_process::Command as AsyncCommand;
 use regex::Regex;
 use serde::Deserialize;
-use tokio::time::timeout;
 use std::env::{self, current_dir};
 use std::fmt::{self, Display, Formatter};
 use std::fs::{self, remove_file, File};
@@ -8,8 +8,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::process::{self, Command};
 use std::time::Duration;
-use async_process::Command as AsyncCommand;
-
+use tokio::time::timeout;
 
 const RUSTC_COLOR_ARGS: &[&str] = &["--color", "always"];
 const RUSTC_EDITION_ARGS: &[&str] = &["--edition", "2021"];
@@ -59,7 +58,7 @@ pub struct Exercise {
     pub mode: Mode,
     // The hint text associated with the exercise
     pub hint: String,
-    
+
     pub result: String,
 
     pub dirname: String,
@@ -171,7 +170,7 @@ path = "{}.rs""#,
                     .args(RUSTC_COLOR_ARGS)
                     .args(&["--", "-D", "warnings", "-D", "clippy::float_cmp"])
                     .output()
-            },
+            }
             Mode::Arceos => {
                 let path: PathBuf = self.path.clone();
                 let dir_path = current_dir().unwrap();
@@ -191,10 +190,10 @@ path = "{}.rs""#,
                 // println!("verify_sh: ===>{}", verify_sh);
 
                 Command::new("sh")
-                .current_dir(dir_path)
-                .arg("-c")
-                .arg(verify_sh)
-                .output()
+                    .current_dir(dir_path)
+                    .arg("-c")
+                    .arg(verify_sh)
+                    .output()
             }
         }
         .expect("Failed to run 'compile' command.");
@@ -225,17 +224,20 @@ path = "{}.rs""#,
                 let mut cmd = AsyncCommand::new("sh");
                 cmd.kill_on_drop(true);
                 cmd.current_dir(dir_path).arg("-c").arg(verify_sh);
-                let output: Result<Result<process::Output, std::io::Error>, tokio::time::error::Elapsed> = timeout(timeout_duration, cmd.output()).await;
+                let output: Result<
+                    Result<process::Output, std::io::Error>,
+                    tokio::time::error::Elapsed,
+                > = timeout(timeout_duration, cmd.output()).await;
                 match output {
                     Ok(out) => out,
                     Err(err) => {
                         // cmd.kill_on_drop(true);
-                        println!("{}超时了：{}", self.name, err);    
-                        Err(std::io::Error::from(std::io::ErrorKind::TimedOut)) 
-                    }  
+                        println!("{}超时了：{}", self.name, err);
+                        Err(std::io::Error::from(std::io::ErrorKind::TimedOut))
+                    }
                 }
-            },
-            _ => Command::new("echo 1").output()
+            }
+            _ => Command::new("echo 1").output(),
         };
 
         match cmd {
@@ -253,14 +255,14 @@ path = "{}.rs""#,
                         stderr: String::from_utf8_lossy(&cmd.stderr).to_string(),
                     })
                 }
-            },
+            }
             Err(err) => {
                 clean();
                 Err(ExerciseOutput {
                     stdout: err.to_string(),
                     stderr: err.to_string(),
                 })
-            },
+            }
         }
     }
 
@@ -344,8 +346,6 @@ path = "{}.rs""#,
         self.state() == State::Done
     }
 }
-
-
 
 impl Display for Exercise {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {

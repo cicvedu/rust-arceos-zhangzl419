@@ -5,11 +5,10 @@ use std::process::Command;
 fn cicvverify() {
     Command::cargo_bin("arceos")
         .unwrap()
-        .args(&["--nocapture", "cicvverify"]) 
+        .args(&["--nocapture", "cicvverify"])
         // .current_dir("exercises")
         .assert()
         .success();
 }
 
-
-// cargo test --package rustlings --test cicv -- cicvverify --exact --nocapture 
+// cargo test --package rustlings --test cicv -- cicvverify --exact --nocapture

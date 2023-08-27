@@ -17,9 +17,10 @@ pub fn verify<'a>(
     let (num_done, total) = progress;
     let bar = ProgressBar::new(total as u64);
     let mut percentage = num_done as f32 / total as f32 * 100.0;
-    bar.set_style(ProgressStyle::default_bar()
-        .template("Progress: [{bar:60.green/red}] {pos}/{len} {msg}")
-        .progress_chars("#>-")
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("Progress: [{bar:60.green/red}] {pos}/{len} {msg}")
+            .progress_chars("#>-"),
     );
     bar.set_position(num_done as u64);
     bar.set_message(format!("({:.1} %)", percentage));
@@ -86,12 +87,21 @@ fn compile_and_run_interactively(exercise: &Exercise, success_hints: bool) -> Re
         }
     };
 
-    Ok(prompt_for_completion(exercise, Some(output.stdout), success_hints))
+    Ok(prompt_for_completion(
+        exercise,
+        Some(output.stdout),
+        success_hints,
+    ))
 }
 
 // Compile the given Exercise as a test harness and display
 // the output if verbose is set to true
-fn compile_and_test(exercise: &Exercise, run_mode: RunMode, verbose: bool, success_hints: bool) -> Result<bool, ()> {
+fn compile_and_test(
+    exercise: &Exercise,
+    run_mode: RunMode,
+    verbose: bool,
+    success_hints: bool,
+) -> Result<bool, ()> {
     let progress_bar = ProgressBar::new_spinner();
     progress_bar.set_message(format!("Testing {exercise}..."));
     progress_bar.enable_steady_tick(100);
@@ -144,7 +154,11 @@ fn compile<'a, 'b>(
     }
 }
 
-fn prompt_for_completion(exercise: &Exercise, prompt_output: Option<String>, success_hints: bool) -> bool {
+fn prompt_for_completion(
+    exercise: &Exercise,
+    prompt_output: Option<String>,
+    success_hints: bool,
+) -> bool {
     let context = match exercise.state() {
         State::Done => return true,
         State::Pending(context) => context,
@@ -168,7 +182,7 @@ fn prompt_for_completion(exercise: &Exercise, prompt_output: Option<String>, suc
         Mode::Compile => "The code is compiling!",
         Mode::Test => "The code is compiling, and the tests pass!",
         Mode::Clippy => clippy_success_msg,
-        Mode::Arceos => "Arceos Passed"
+        Mode::Arceos => "Arceos Passed",
     };
     println!();
     if no_emoji {
@@ -221,8 +235,7 @@ fn separator() -> console::StyledObject<&'static str> {
     style("====================").bold()
 }
 
-
-fn arceos(exercise: &Exercise) -> Result<bool, ()>  {
+fn arceos(exercise: &Exercise) -> Result<bool, ()> {
     let progress_bar = ProgressBar::new_spinner();
     progress_bar.set_message(format!("Compiling {exercise}..."));
     progress_bar.enable_steady_tick(100);
@@ -230,10 +243,14 @@ fn arceos(exercise: &Exercise) -> Result<bool, ()>  {
     let compilation_result = exercise.compile();
     match compilation_result {
         Ok(compilation) => {
-            println!(" compilation.stdout:::::--->{}",  compilation.stdout);
+            println!(" compilation.stdout:::::--->{}", compilation.stdout);
             if compilation.stdout.contains(&exercise.result) {
                 // compilation
-                Ok(prompt_for_completion(exercise, Some(exercise.result.clone()), false))
+                Ok(prompt_for_completion(
+                    exercise,
+                    Some(exercise.result.clone()),
+                    false,
+                ))
             } else {
                 println!(
                     "Compilation of {} failed!, Compiler error message:\n",
@@ -241,7 +258,7 @@ fn arceos(exercise: &Exercise) -> Result<bool, ()>  {
                 );
                 Err(())
             }
-        },
+        }
         Err(output) => {
             progress_bar.finish_and_clear();
             println!(
@@ -252,5 +269,4 @@ fn arceos(exercise: &Exercise) -> Result<bool, ()>  {
             Err(())
         }
     }
-    
 }
