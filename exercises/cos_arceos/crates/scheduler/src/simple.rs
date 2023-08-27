@@ -11,9 +11,7 @@ pub struct SimpleTask<T> {
 impl<T> SimpleTask<T> {
     /// Creates a new [`SimpleTask`] from the inner task struct.
     pub const fn new(inner: T) -> Self {
-        Self {
-            inner,
-        }
+        Self { inner }
     }
 
     /// Returns a reference to the inner task struct.

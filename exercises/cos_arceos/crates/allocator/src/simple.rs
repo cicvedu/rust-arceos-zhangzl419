@@ -5,30 +5,32 @@
 use core::alloc::Layout;
 use core::num::NonZeroUsize;
 
-use crate::{AllocResult, BaseAllocator, ByteAllocator, AllocError};
+use crate::{AllocError, AllocResult, BaseAllocator, ByteAllocator};
 
 pub struct SimpleByteAllocator {
-    data: [u8; Self::Max],
-    // 指向当前可用内存
-    curFreeMemPtr: usize,
-    // 已分配数
-    num_allocated: usize
+    start: usize,       //起始位置
+    next: usize,        //可用空间起始位置
+    allocations: usize, //分配次数
+    end: usize,         //全部空间的结尾
 }
 
 impl SimpleByteAllocator {
-    const Max: usize = 10 * 1024 * 1024;
-    
     pub const fn new() -> Self {
         Self {
-            data: [0; Self::Max],
-            curFreeMemPtr: 0,
-            num_allocated: 0
+            start: 0,
+            next: 0,
+            allocations: 0,
+            end: 0,
         }
     }
 }
 
 impl BaseAllocator for SimpleByteAllocator {
     fn init(&mut self, _start: usize, _size: usize) {
+        self.start = _start;
+        self.next = _start;
+        self.end = _start + _size;
+        self.allocations = 0;
     }
 
     fn add_memory(&mut self, _start: usize, _size: usize) -> AllocResult {
@@ -38,47 +40,35 @@ impl BaseAllocator for SimpleByteAllocator {
 
 impl ByteAllocator for SimpleByteAllocator {
     fn alloc(&mut self, layout: Layout) -> AllocResult<NonZeroUsize> {
-        let size = layout.size();
-        let align = 2usize.pow(layout.align() as u32);
+        let need_size = layout.size();
+        let align = layout.align();
 
-        let quotient = size / align;
-        let remainder = size % align;
-        let size = if remainder != 0 {
-            quotient + 1
+        let tmp_start = (self.next + align) / align * align; //对齐内存
+        if (tmp_start + need_size) > self.end {
+            Err(crate::AllocError::NoMemory)
         } else {
-            quotient
-        } * align;
-        
-        //确保内存足够
-        if self.curFreeMemPtr + size > Self::Max {
-            return Err(AllocError::NoMemory);
+            self.allocations += 1;
+            self.next = self.next + need_size;
+            Ok(NonZeroUsize::new(tmp_start).unwrap())
         }
-
-        //分配
-        let start = self.curFreeMemPtr;
-        self.curFreeMemPtr += size;
-        self.num_allocated += 1;
-        let ptr = self.data[start..self.curFreeMemPtr].as_mut_ptr() as usize;
-
-        Ok(NonZeroUsize::new(ptr).unwrap())
     }
 
     fn dealloc(&mut self, _pos: NonZeroUsize, _layout: Layout) {
-        self.num_allocated -= 1;
-        if self.num_allocated == 0 {
-            self.curFreeMemPtr = 0;
+        self.allocations -= 1;
+        if self.allocations == 0 {
+            self.start = 0;
         }
     }
 
     fn total_bytes(&self) -> usize {
-        Self::Max
+        self.end - self.start
     }
 
     fn used_bytes(&self) -> usize {
-        self.curFreeMemPtr
+        self.next - self.start
     }
 
     fn available_bytes(&self) -> usize {
-        Self::Max - self.curFreeMemPtr
+        self.end - self.next
     }
 }
