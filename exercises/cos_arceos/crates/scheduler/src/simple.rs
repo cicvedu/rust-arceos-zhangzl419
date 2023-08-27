@@ -12,9 +12,9 @@ pub struct SimpleTask<T> {
 impl<T> SimpleTask<T> {
     /// Creates a new [`SimpleTask`] from the inner task struct.
     pub const fn new(inner: T) -> Self {
-        Self { 
+        Self {
             inner,
-            time_slice: AtomicIsize::new(5), 
+            time_slice: AtomicIsize::new(5),
         }
     }
 
@@ -97,7 +97,9 @@ impl<T> BaseScheduler for SimpleScheduler<T> {
     }
 
     fn task_tick(&mut self, current: &Self::SchedItem) -> bool {
-        let old_slice = current.time_slice.fetch_sub(1, core::sync::atomic::Ordering::Release);
+        let old_slice = current
+            .time_slice
+            .fetch_sub(1, core::sync::atomic::Ordering::Release);
         old_slice <= 1 // no reschedule
     }
 
